@@ -1,0 +1,45 @@
+#!/usr/bin/env python2
+
+import cgi
+import cgitb
+cgitb.enable(display=1, logdir="/tmp/cloud.log")
+print "Content-type: application/json"
+print
+
+import json
+
+from os import environ
+from email.mime.text import MIMEText
+from subprocess import Popen, PIPE
+
+form = cgi.FieldStorage()
+email = form.getfirst("email", "nobody@example.com")
+subject = form.getfirst("subject", "Support Request")
+body = form.getfirst("body")
+
+header =  '-'*64+'\n'
+if 'AUTH_TYPE' in environ:
+    header += ' Authentication Type: %s\n' % (environ['AUTH_TYPE'])
+if 'REMOTE_USER' in environ:
+    header += '  Kerberos Prinicpal: %s\n' % (environ['REMOTE_USER'])
+if 'REMOTE_ADDR' in environ:
+    header += '   Client IP Address: %s\n' % (environ['REMOTE_ADDR'])
+header += '-'*64+'\n'
+header += '\n'
+
+def sendmail(email, subject, body):
+    msg = MIMEText(body)
+    msg["From"] = email
+    msg["To"] = "cloud-support@example.com"
+    msg["Subject"] = subject
+    p = Popen(["/usr/sbin/sendmail", "-t"], stdin=PIPE)
+    p.communicate(msg.as_string())
+
+if body:
+    try:
+        sendmail(email, subject, header + body)
+        print json.dumps(True)
+    except:
+        print json.dumps(False)
+else:
+    print json.dumps(False)

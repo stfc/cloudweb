@@ -1,0 +1,32 @@
+#!/usr/bin/env python2
+
+import cgi
+import cgitb
+from os import environ
+from federal_id import federal_ids
+import json
+
+cgitb.enable(display=1, logdir="/tmp/cloud.log")
+
+print "Content-type: application/json"
+print
+
+if environ['AUTH_TYPE'] == 'Negotiate':
+    principal = environ['REMOTE_USER']
+    fedid = principal.split('@', 1)[0]
+    f = federal_ids()
+
+    details = f.search(fedid)
+
+    results = {
+	"errors": [],
+	"user": {},
+    }
+
+    if "ERROR" in details:
+        results["errors"] = [details]
+    else:
+        results["user"] = details
+        results["user"]["name"] = "%s %s" % (results["user"]["givenName"], results["user"]["sn"])
+
+    print json.dumps(results)
