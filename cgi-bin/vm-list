@@ -1,0 +1,14 @@
+#!/bin/bash
+
+fedid=$(echo $REMOTE_USER | cut -d @ -f 1)
+
+registered=false
+getent passwd $fedid >/dev/null 2>&1 && registered=true
+
+if $registered; then
+    /usr/bin/sudo -u $fedid ../python/vm-list
+else
+    echo "Content-type: text/plain"
+    echo ""
+    echo "not registered"
+fi

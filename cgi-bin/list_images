@@ -1,0 +1,6 @@
+#!/bin/bash
+if [[ -n "$REMOTE_USER" ]]; then
+    /usr/bin/sudo -u $(echo $REMOTE_USER | cut -d @ -f 1) ../python/list_images $@
+else
+    cat "return-nothing"
+fi

@@ -1,0 +1,2 @@
+#!/bin/bash
+/usr/bin/sudo -u $(echo $REMOTE_USER | cut -d @ -f 1) ../python/vm-run $QUERY_STRING
