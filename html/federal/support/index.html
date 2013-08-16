@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Cloud Interface</title>
+        <link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet" type="text/css" >
+        <link href="/style.css" rel="stylesheet" type="text/css" >
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <script type="text/javascript" src="/jquery-1.8.2.min.js"></script>
+        <script type="text/javascript" src="/bootstrap/js/bootstrap.min.js"></script>
+        <script type="text/javascript" src="/bootstrap/js/bootbox.min.js"></script>
+        <meta http-equiv="Cache-Control" content="no-store" />
+    </head>
+    <body>
+        <div class = "container-fluid">
+            <div class = "row-fluid">
+                <div class = "span4"></div>
+                <div class = "span4">
+                    <h1 class= "text-center page-title">Cloud</h1>
+                </div>
+                <div class = "span4 text-right" style="height: 140px;">
+                    <a href=".." class = "btn btn-large btn-warning">Home</a>
+                </div>
+            </div>
+        </div>
+        <div class="container">
+            <div class="row">
+                <div class="span4 offset4">
+                    <h2 class = "text-center" >Support</h2>
+                    <h6 class = "text-center" style="margin-top: 1em;">For support, please complete the form below</h6>
+                    <label>Your Name</label>
+                    <input style = "width: 100%" name = "name" id = "name" type = "text" placeholder = "Firstname Surname" required>
+                    <label>Your E-mail Address</label>
+                    <input style = "width: 100%" name = "email" id = "email" type = "email" placeholder = "dave@example.com" required>
+                    <label>Description of Problem</label>
+                    <textarea style = "width: 100%" name = "msg" id = "msg" rows= "3" placeholder = "Briefly describe the problem you are experiencing" required></textarea>
+                    <button style = "width: 100%" class = "btn btn-success" id="buttonSend" value = "Send">Send</button>
+                </div>
+            </div>
+        </div>
+        <script type="text/javascript">
+            $("#buttonSend").click(function() {
+                params = {
+                    "name": $("#name").val(),
+                    "email": $("#email").val(),
+                    "body":$("#msg").val(),
+                };
+                bootbox.confirm("Are you sure you want to send this support request?", function(result) {
+                    if (result === true) {
+                        $.get("/cgi-bin/sendmail", params, function(response, status, xhr) {
+                            if (response === true) {
+                                window.location = "../";
+                            }
+                            else {
+                                bootbox.alert("Failed to send support request, please email <code>cloud-support@example.com</code> directly")
+                            }
+                        })
+                    }
+                    else {
+                        bootbox.alert("Support request cancelled")
+                    }
+                })
+            });
+            $.get('/cgi-bin/user-details', function(response, status, xhr) {
+                if (response) {
+                    errors = response["errors"];
+                    if (errors.length > 0) {
+                        alert(errors);
+                    }
+                    else {
+                        user = response["user"];
+                        $("#name").val(user["name"]);
+                        $("#email").val(user["mail"]);
+                    }
+                }
+            });
+        </script>
+    </body>
+</html>

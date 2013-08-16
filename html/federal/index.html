@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Cloud Interface</title>
+        <link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet" type="text/css" >
+        <link href="/style.css" rel="stylesheet" type="text/css" >
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <script type="text/javascript" src="/jquery-1.8.2.min.js"></script>
+        <script type="text/javascript" src="/bootstrap/js/bootstrap.min.js"></script>
+        <script type="text/javascript" src="/bootstrap/js/bootbox.min.js"></script>
+        <meta http-equiv="Cache-Control" content="no-store" />
+    </head>
+    <body>
+        <div class = "container-fluid">
+            <div class = "row-fluid">
+                <div class = "span4 offset4">
+                    <h1 class= "text-center page-title">Cloud</h1>
+                </div>
+                <div class = "span4 text-right" style="height: 160px;">
+                    <a href ="support/" class = "btn btn-large">Support</a>
+                </div>
+            </div>
+            <div class = "row-fluid" align = "right">
+                <a href = "run/" class = "btn btn-success btn-large">Create System</a>
+            </div>
+            <div class = "row-fluid" style="margin-top: 1em">
+                <table class = "table table-striped table-bordered table-hover text-center">
+                    <thead>
+                        <tr>
+                            <th>Login</th>
+                            <th>Name</th>
+                            <th>Hostname</th>
+                            <th>Status</th>
+                            <th>System Image</th>
+                            <th>CPUs</th>
+                            <th>RAM</th>
+                            <th>Swap</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="list">
+                        <tr><td colspan="9"><p class="text-center"><img src="/images/loading.gif" alt="Loading..."></p></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <script type="text/javascript">
+                /*
+                    States as documented in https://svn.apache.org/viewvc/libcloud/trunk/libcloud/compute/types.py
+
+                    RUNNING = 0
+                    REBOOTING = 1
+                    TERMINATED = 2
+                    PENDING = 3
+                    UNKNOWN = 4
+                */
+                states = ['Running', 'Rebooting', 'Terminated', 'Pending', 'Unknown'];
+                labels = ['success', 'info', 'important', 'warning', 'inverse'];
+                function maketable() {
+                    $.get('/cgi-bin/vm-list',
+                        function(response, status, xhr) {
+                            if(response) {
+                                if (response == "not registered\n") {
+                                    window.location = "access";
+                                } else {
+                                    errors = response["errors"];
+                                    if (errors.length > 0) {
+                                        alert(errors);
+                                    } else {
+                                        list = response["list"];
+                                        $("#list").html("")
+                                        if (list.length > 0) {
+                                            count = list.length;
+                                            for (var l in list) {
+                                                s = "<tr id='row" + list[l]["id"] + "'>";
+                                                s += "<td> <a href = 'ssh://root@" + list[l]["hostname"] +"' class = 'btn btn-primary'>SSH</a> </td>";
+                                                s += "<td>" + list[l]["name"] + "</td>";
+                                                s += "<td>" + list[l]["hostname"] + "</td>";
+                                                s += "<td><span class='label label-" + labels[list[l]["state"]] + "'>" + states[list[l]["state"]] + "</span> <a class='btn btn-mini' title='View detailed system log' onclick='viewlog(" + list[l]["id"] + ")'><i class='icon-file-text'></i></a></td>";
+                                                s += "<td>" + list[l]["image"] + "</td>";
+                                                s += "<td>" + list[l]["cpu"] + "</td>";
+                                                s += "<td>" + ((list[l]["ram"] > 1024) ? list[l]["ram"]/1024 + "GB" : list[l]["ram"] + "MB") + "</td>";
+                                                s += "<td>" + ((list[l]["disk"] > 1024) ? list[l]["disk"]/1024 + "GB" : list[l]["disk"] + "MB") + "</td>";
+                                                s+= "</td>";
+                                                s += "<td><a onclick='killvm(" + list[l]["id"] + ");' class = 'btn btn-danger'><em>KILL</em></a></td>";
+                                                s += "</tr>\n";
+                                                $('#list').append(s);
+                                            };
+                                        } else {
+                                            $("#list").html('<tr><td colspan="9" style="text-align: center"><h2>You haven\'t got any systems!</h2><p>How about creating some?</p><a href = "run/" class = "btn btn-success">Create System</a></td></tr>');
+                                        }
+                                    }
+                                    $('#demo').text(response);
+                                }
+                            } else {
+                                alert("Issue with Cloud Feed");
+                            }
+                        }
+                    );
+                }
+                function killvm(id) {
+                    name = $('#row'+id+' td')[1].innerHTML;
+                    hostname = $('#row'+id+' td')[2].innerHTML;
+
+                    text  = "<h2>WARNING</h2>";
+                    text += "<p>Are you sure you wish to kill "+name+" ("+hostname+")?</p>";
+                    text += "<p>This is permanant! Make sure you have finished with this system, you will not be able to recover it later.</p>";
+                    bootbox.confirm(text, function(result) {
+                        if (result === true) {
+                            console.log("Killing VM");
+                            $.get("/cgi-bin/vm-kill", {'id' : id}, function(response, status, xhr) {
+                                console.log(response);
+                                if (response == true) {
+                                    $('#row'+id+' td').addClass("muted")
+                                    $('#row'+id+' a').attr("disabled", "disabled")
+                                    $('#row'+id+' a').removeAttr("href")
+                                    $('#row'+id+' a').removeAttr("onclick")
+                                    maketable();
+                                }
+                                else{
+                                    bootbox.alert("Kill VM Failed")
+                                }
+                            });
+                            console.log("Made AJAX call");
+                        }
+                        else{
+                            bootbox.alert("Cancelled")
+                        }
+                    })
+                }
+                function viewlog(id) {
+                    bootbox.alert('<pre id="log" class="pre-scrollable" style="font-size: small">Loading...</pre>');
+                    $("div.modal").css("position", "absolute");
+                    $("div.modal").css("margin-left", "0");
+                    $("div.modal").css("margin-right", "0");
+                    $("div.modal").css("left", "5%");
+                    $("div.modal").css("width", "90%");
+                    $.get("/logs/" + id + ".log", function(response) {
+                        response = response.split("\n");
+                        output = "";
+                        for (var l in response) {
+                            line = response[l];
+                            line = line.replace(/^(.+ )\[/i, "<span class='label'>$1</span> [");
+                            line = line.replace(/\[([A-Z]+)\]\[/i, "<span class='label'>$1</span> [");
+                            line = line.replace(/\[(I)\]:/i, "<span class='label label-info'>$1</span>");
+                            line = line.replace(/\[(D)\]:/i, "<span class='label label-success'>$1</span>");
+                            line = line.replace(/(".+?")/gi, "<span class='text-error'>$1</span>");
+                            output += line + "\n";
+                        }
+                        $("#log").html(output);
+                    });
+                }
+                setInterval(maketable, 15000);
+                maketable();
+            </script>
+        </div>
+    </body>
+</html>

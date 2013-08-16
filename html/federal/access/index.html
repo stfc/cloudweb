@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Cloud Interface</title>
+        <link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet" type="text/css" >
+        <link href="/style.css" rel="stylesheet" type="text/css" >
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <script type="text/javascript" src="/jquery-1.8.2.min.js"></script>
+        <script type="text/javascript" src="/bootstrap/js/bootstrap.min.js"></script>
+        <script type="text/javascript" src="/bootstrap/js/bootbox.min.js"></script>
+        <meta http-equiv="Cache-Control" content="no-store" />
+    </head>
+    <body>
+        <div class = "container">
+            <div class = "row-fluid">
+                <div class = "span4"></div>
+                <div class = "span4">
+                    <h1 class= "text-center page-title" style="height: 140px;">Cloud</h1>
+                </div>
+            </div>
+            <div class = "row">
+                <h3 class = "text-center" >Hi <span id="greetname"></span>! You don't appear to have an account yet.</h3>
+                <h6 class = "text-center">It won't take long to apply for access, just provide some information below and wait for an admin to contact you.</h6>
+                <form class="form-horizontal span11 offset1" id="application">
+                    <div class="control-group">
+                        <label class="control-label">Name</label>
+                        <div class="controls">
+                            <input id = "name" type = "text" placeholder = "Forename Surname" class="span4">
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">E-mail Address</label>
+                        <div class="controls">
+                            <input id = "email" type = "email" placeholder = "dave@example.com" class="span4">
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Why would you like access?</label>
+                        <div class="controls">
+                            <textarea id = "message" rows= "3" placeholder = "I would like to test the software I am developing." class="span7"></textarea>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">SSH Public Key</label>
+                        <div class="controls">
+                            <textarea id = "key" rows= "7" placeholder = "id-scd QXdlc29tZSBzYXVjZSE= dave@example.com"  class="span7"></textarea>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <div class="controls">
+                            <button class="btn btn-success">Submit Application</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <script type="text/javascript">
+            $.get('/cgi-bin/user-details', function(response, status, xhr) {
+                if (response) {
+                    errors = response["errors"];
+                    if (errors.length > 0) {
+                        alert(errors);
+                    }
+                    else {
+                        user = response["user"];
+                        $("#greetname").html(user["givenName"]);
+                        $("#name").val(user["name"]);
+                        $("#email").val(user["mail"]);
+                    }
+                }
+            });
+
+            $("#application").submit(function() {
+                params = {
+                    "name": $("#name").val(),
+                    "email": $("#email").val(),
+                    "subject": "Application for access",
+                    "body": $("#msg").val() + "\n\n" + $("#key").val(),
+                };
+                bootbox.confirm("Are you sure you want to send this application?", function(result) {
+                    if (result === true) {
+                        $.get("/cgi-bin/sendmail", params, function(response, status, xhr) {
+                            if (response === true) {
+                                window.location = "thanks.html";
+                            }
+                            else {
+                                bootbox.alert("Failed to send application, please email <code>cloud-support@example.com</code> directly")
+                            }
+                        })
+                    }
+                });
+                return false;
+            });
+        </script>
+    </body>
+</html>
