@@ -1,0 +1,102 @@
+#!/usr/bin/env python2
+
+import cgi
+import cgitb
+cgitb.enable(display=1, logdir="/tmp/cloud.log")
+print "Content-type: application/json"
+print
+
+import os
+import json
+
+from random import randint
+
+from libcloud.compute.providers import get_driver
+from libcloud.compute.providers import set_driver
+import stratuslab.libcloud.compute_driver
+from libcloud.compute.types import Provider
+from libcloud.compute.base import NodeAuthSSHKey
+
+
+# Taken from https://github.com/StratusLab/libcloud-drivers/blob/master/src/test/python/demo_utils.py
+def select_id(identifier, objects):
+    for o in objects:
+        if o.id == identifier:
+            return o
+    return None
+ 
+    
+def swear_filter(text):
+    f = open("/usr/share/dict/badwords")
+    badwords = f.readlines()
+    badwords = [w.strip() for w in badwords]
+    f.close()
+
+    text = text.split()
+    clean = []
+    
+    for word in text:
+        if word.lower() in badwords:
+            word = random_word().title()
+        clean.append(word)
+
+    return " ".join(clean)
+
+
+def random_word():
+    return words[randint(0, len(words) - 1)]
+
+
+def random_name():
+    name = []
+    i = 0
+    
+    while i < 2:
+        name.append(random_word())
+        i += 1 
+
+    return " ".join(name).replace("'","&#39").title()
+
+
+# Load wordlist
+f = open("/usr/share/dict/words")
+words = f.readlines()
+words = [w.strip() for w in words]
+f.close()
+
+form = cgi.FieldStorage()
+name = swear_filter(form.getfirst("name", random_name()))
+size = form.getfirst("type", "m1.medium")
+image = form.getfirst("image", "I4RqrVnpKh4QbUgxi2n409cXm8k")
+quantity = int(form.getfirst("quantity", "1" ))
+
+# Get ssh key.
+home = os.path.expanduser('~')
+ssh_public_key_path = os.path.join(home, '.ssh', 'id_rsa.pub')
+ssh_private_key_path = ssh_public_key_path.rstrip('.pub')
+
+with open(ssh_public_key_path) as f:
+    pubkey = NodeAuthSSHKey(f.read())
+
+set_driver('stratuslab', 'stratuslab.libcloud.compute_driver', 'StratusLabNodeDriver')
+StratusLabDriver = get_driver('stratuslab')
+driver = StratusLabDriver('default')
+
+sizes = driver.list_sizes()
+images = driver.list_images()
+
+size = select_id(size, sizes)
+image = select_id(image, images)
+
+node = []
+
+for i in range(0, quantity):
+    thisname = name
+    if quantity > 1:
+        thisname += " %d" % (i+1)
+    node.append(driver.create_node(name=thisname, size=size, image=image, auth=pubkey))
+
+if len(node) == quantity:
+    print json.dumps(True)
+else:
+    print json.dumps(False)

@@ -1,0 +1,62 @@
+#!/usr/bin/env python2
+
+import cgi
+import cgitb
+cgitb.enable(display=1, logdir="/tmp/cloud.log")
+print "Content-type: application/json"
+print
+
+import json
+
+
+from socket import gethostbyaddr
+
+from libcloud.compute.providers import get_driver
+from libcloud.compute.providers import set_driver
+import stratuslab.libcloud.compute_driver
+from libcloud.compute.types import Provider
+
+# Taken from https://github.com/StratusLab/libcloud-drivers/blob/master/src/test/python/demo_utils.py
+def select_id(identifier, objects):
+    for o in objects:
+        if o.id == identifier:
+            return o
+    return None
+
+set_driver('stratuslab', 'stratuslab.libcloud.compute_driver', 'StratusLabNodeDriver')
+StratusLabDriver = get_driver('stratuslab')
+driver = StratusLabDriver('default')
+
+props = ['name','id','state']
+sizeprops = ['cpu', 'disk', 'ram']
+
+nodes = list()
+
+images = driver.list_images()
+
+for n in driver.list_nodes():
+    nodeinfo = dict()
+
+    for p in props:
+        nodeinfo[p] = getattr(n, p)
+
+    image = select_id(n.image.id, images)
+    nodeinfo["image"] = image.name
+
+    nodeinfo["type"] = []
+    for p in sizeprops:
+        nodeinfo["type"].append("%s: %s" % (p.upper(), getattr(n.size, p)))
+        nodeinfo[p] = getattr(n.size, p)
+    nodeinfo["type"] = ", ".join(nodeinfo["type"])
+
+    nodeinfo["hostname"] = gethostbyaddr(n.public_ips[0])[0]
+    nodeinfo["ip"] = n.public_ips[0]
+
+    nodes.append(nodeinfo)
+
+result = {
+    "errors": [],
+    "list": nodes,
+}
+
+print json.dumps(result, indent=4)

@@ -1,0 +1,39 @@
+#!/usr/bin/env python2
+
+import cgi
+import cgitb
+cgitb.enable(display=1, logdir="/tmp/cloud.log")
+print "Content-type: application/json"
+print
+
+import json
+
+form = cgi.FieldStorage()
+nodeId = form.getfirst("id", "error")
+
+from libcloud.compute.providers import get_driver
+from libcloud.compute.providers import set_driver
+import stratuslab.libcloud.compute_driver
+from libcloud.compute.types import Provider
+from libcloud.compute.base import NodeAuthSSHKey
+
+
+# Taken from https://github.com/StratusLab/libcloud-drivers/blob/master/src/test/python/demo_utils.py
+def select_id(identifier, objects):
+    for o in objects:
+        if o.id == identifier:
+            return o
+    return None
+
+set_driver('stratuslab', 'stratuslab.libcloud.compute_driver', 'StratusLabNodeDriver')
+StratusLabDriver = get_driver('stratuslab')
+driver = StratusLabDriver('default')
+
+nodes = driver.list_nodes()
+node = select_id(nodeId, nodes)
+
+try:
+    driver.destroy_node(node)
+    print json.dumps(True)
+except:
+    print json.dumps(False)
