@@ -1,0 +1,10 @@
+body {
+  background-image: url("/images/titlelogo.png");
+  background-position: top center;
+  background-repeat: no-repeat;
+  padding-top: 8px;
+  background-size: contain;
+}
+h1.page-title {
+	color: white;
+}
