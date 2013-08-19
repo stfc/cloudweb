@@ -22,7 +22,9 @@ As shipped, the code directly targets the StratusLab cloud platform, but porting
 
 Requirements
 ------------
-* Apache httpd with both `mod_ssl` *and* `mod_auth_krb` configured
+* Apache httpd with both `mod_ssl` and `mod_auth_kerb` configured
+    * `/federal/` and `/cgi-bin/` both require `SSLRequireSSL` and `AuthType Kerberos`.
+    * `/logs/` pointing to a directory of log files, one per VM of the form `<VM-ID>.log`.
 * libcloud
 * stratuslab-libcloud-drivers
 * Python 2.x
